@@ -1,6 +1,9 @@
 /*! Catalyst chat scene · <catalyst-scene> web component
  *  Usage: <catalyst-scene scene="assets | website | brand-theme"></catalyst-scene>
  *  Optional: backdrop="left" puts the colored panel on the left.
+ *  Optional: controlled — the scene waits for el.restart() instead of starting on scroll, plays once,
+ *  then fires "catalyst-scene-end". It also fires "catalyst-scene-pause" and "catalyst-scene-resume"
+ *  when it leaves or re-enters the screen.
  *  Styles live in a shadow root, so page CSS and component CSS cannot affect each other.
  *  Colors and sizes can be overridden from the page with the --cs-* variables listed in the README. */
 (() => {
@@ -974,7 +977,7 @@ const mount = (stage, opts = {}) => {
 
       if (sc.kind === 'theme') {
         await playTheme(sc, id);
-        if (!reduced) { await sleep(7000, id); play(order[(order.indexOf(i) + 1) % order.length]); }
+        await finish(i, id, 7000);
         return;
       }
 
@@ -996,23 +999,45 @@ const mount = (stage, opts = {}) => {
       addUser('Make it', []);
       await build(sc, rows, id);
 
-      if (!reduced) { await sleep(9000, id); play(order[(order.indexOf(i) + 1) % order.length]); }
+      await finish(i, id, 9000);
     } catch (e) {
       if (e !== 'stop') console.error(e);
     }
   }
 
+  const host = opts.host || stage;
+  const emit = name => host.dispatchEvent(new CustomEvent(name, { bubbles: true, composed: true }));
+  async function finish(i, id, hold) {
+    if (opts.controlled) {
+      await sleep(reduced ? 0 : 3000, id);
+      emit('catalyst-scene-end');
+      return;
+    }
+    if (!reduced) { await sleep(hold, id); play(order[(order.indexOf(i) + 1) % order.length]); }
+  }
   pills.forEach(p => p.addEventListener('click', () => { paused = false; waiters.length = 0; play(Number(p.dataset.scene)); }));
-  let started = false;
+  let started = false, visible = false;
+  const pause = () => { if (!paused) { paused = true; emit('catalyst-scene-pause'); } };
+  const resume = () => { if (paused) { paused = false; waiters.splice(0).forEach(f => f()); emit('catalyst-scene-resume'); } };
   new IntersectionObserver(([e]) => {
-    if (e.isIntersecting) {
-      if (!started) { started = true; play(order[0]); return; }
-      paused = false;
-      waiters.splice(0).forEach(f => f());
+    visible = e.isIntersecting;
+    if (visible) {
+      if (!started && !opts.controlled) { started = true; play(order[0]); return; }
+      if (started) resume();
     } else if (started) {
-      paused = true;
+      pause();
     }
   }, { threshold: 0.3 }).observe(stage);
+  // Start (or start over) from the first step. Used by page scripts such as auto-advancing tabs.
+  return {
+    restart() {
+      started = true;
+      waiters.length = 0;
+      paused = !visible;
+      if (paused) emit('catalyst-scene-pause');
+      play(order[0]);
+    }
+  };
 };
 
   const SCENE_INDEX = { assets: 0, website: 1, 'brand-theme': 2 };
@@ -1028,7 +1053,12 @@ const mount = (stage, opts = {}) => {
       const root = this.attachShadow({ mode: 'open' });
       root.innerHTML = `<style>${CSS}</style>${SPRITE}<div class="cs-stage"></div>`;
       const n = SCENE_INDEX[this.getAttribute('scene')] ?? 0;
-      mount(root.querySelector('.cs-stage'), { scenes: [n], label: LABELS[n] });
+      this._scene = mount(root.querySelector('.cs-stage'), { scenes: [n], label: LABELS[n], host: this, controlled: this.hasAttribute('controlled') });
+      if (this._pendingRestart) { this._pendingRestart = false; this._scene.restart(); }
+    }
+    restart() {
+      if (this._scene) this._scene.restart();
+      else this._pendingRestart = true;
     }
   }
   customElements.define('catalyst-scene', CatalystScene);
