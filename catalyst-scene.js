@@ -81,6 +81,7 @@
   --cs-g1: #141524; --cs-g2: #17134A; --cs-g3: #3F35C4; --cs-g4: #3FD7D0; --cs-g5: #141524;
   background: linear-gradient(180deg, var(--cs-g1) 0%, var(--cs-g2) 28%, var(--cs-g3) 58%, var(--cs-g4) 80%, var(--cs-g5) 100%);
   transition: --cs-g1 .9s ease, --cs-g2 .9s ease, --cs-g3 .9s ease, --cs-g4 .9s ease, --cs-g5 .9s ease;
+  filter: blur(var(--cs-backdrop-blur, 40px));
 }
 .backdrop::after {
   content: ""; position: absolute; inset: -10%;
