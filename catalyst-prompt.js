@@ -35,6 +35,8 @@
   const LENGTHS = [15, 30, 45, 60];
   const DEFAULTS = { theme: 'northwind', shape: 'mobile', length: 30 };
   const TIMING = { type: 38, erase: 16, hold: 2400, gap: 450 };
+  // Cursor demo after the first prompt: switches the theme from one to the other.
+  const DEMO = { from: 'northwind', to: 'ember' };
 
   // Registered color properties let the glow fade between themes. They must live in the document.
   if (!document.getElementById('catalyst-prompt-props')) {
@@ -62,6 +64,8 @@
   --cs-pop-shadow: 0 18px 40px -14px rgba(30, 34, 60, .22);
   --cs-box-shadow: 0 24px 60px -28px rgba(30, 34, 60, .22);
   --cs-glow-opacity: .45;
+  --cs-cur-fill: #171923;
+  --cs-cur-edge: #FFFFFF;
   color-scheme: light;
 }
 :host([mode="dark"]) {
@@ -77,6 +81,8 @@
   --cs-pop-shadow: 0 18px 40px -12px rgba(0, 0, 0, .8);
   --cs-box-shadow: 0 30px 60px -30px rgba(4, 5, 14, .8);
   --cs-glow-opacity: .7;
+  --cs-cur-fill: #FFFFFF;
+  --cs-cur-edge: #1F2034;
   color-scheme: dark;
 }
 .wrap {
@@ -134,6 +140,12 @@
 .custom.on input { border-color: var(--cs-accent); }
 .custom span { color: var(--cs-mute); font-size: 13px; }
 [hidden] { display: none !important; }
+.cursor { position: absolute; left: 0; top: 0; width: 24px; height: 28px; z-index: 10; pointer-events: none; opacity: 0; transition: transform .9s cubic-bezier(.45, .1, .2, 1), opacity .3s ease; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .3)); }
+.cursor.show { opacity: 1; }
+.cursor path { fill: var(--cs-cur-fill); stroke: var(--cs-cur-edge); stroke-width: 1.5; stroke-linejoin: round; }
+.chip.press { transform: scale(.96); }
+.item.press { background: var(--cs-chip); }
+.chip { transition: border-color .15s ease, color .15s ease, background .15s ease, transform .15s ease; }
 @keyframes blink { to { visibility: hidden; } }
 @keyframes pop { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
 @keyframes drift { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
@@ -166,6 +178,7 @@
       root.innerHTML = `<style>${CSS}</style>
         <div class="wrap">
           <div class="glow"></div>
+          <svg class="cursor" viewBox="0 0 22 26" aria-hidden="true"><path d="M2 1.5v18l4.6-4.3 3.2 7.3 3.2-1.4-3.2-7.2h6.4z"/></svg>
           <div class="box">
             <div class="field" aria-hidden="true"><span class="text"></span><span class="caret"></span></div>
             <div class="bottom">
@@ -203,7 +216,7 @@
         menu.hidden = true;
         wrap.append(btn, menu);
         chipsEl.append(wrap);
-        btn.addEventListener('click', e => { e.stopPropagation(); openDD(dd[key].menu.hidden ? key : null); });
+        btn.addEventListener('click', e => { e.stopPropagation(); userTouched = true; openDD(dd[key].menu.hidden ? key : null); });
         menu.addEventListener('keydown', e => {
           if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
           const f = [...menu.querySelectorAll('.item, input')];
@@ -213,21 +226,23 @@
         });
         dd[key] = { wrap, btn, menu };
       };
-      const openDD = key => {
+      let userTouched = false;
+      const openDD = (key, focus = true) => {
         for (const k in dd) {
           const open = k === key;
           dd[k].menu.hidden = !open;
           dd[k].btn.setAttribute('aria-expanded', String(open));
           dd[k].btn.classList.toggle('open', open);
-          if (open) (dd[k].menu.querySelector('[aria-checked="true"], .custom.on input') || dd[k].menu.querySelector('.item')).focus();
+          if (open && focus) (dd[k].menu.querySelector('[aria-checked="true"], .custom.on input') || dd[k].menu.querySelector('.item')).focus();
         }
       };
-      const pick = (key, value) => { settings[key] = value; apply(); openDD(null); dd[key].btn.focus(); };
+      const pick = (key, value) => { userTouched = true; settings[key] = value; apply(); openDD(null); dd[key].btn.focus(); };
       const item = (key, value, inner, checked) => {
         const b = h('button', 'item', inner + ICON.check);
         b.type = 'button';
         b.setAttribute('role', 'menuitemradio');
         b.setAttribute('aria-checked', String(checked));
+        b.dataset.id = String(value);
         b.addEventListener('click', e => { e.stopPropagation(); pick(key, value); });
         return b;
       };
@@ -289,11 +304,14 @@
         }
         for (;;) {
           const text = prompts[index];
+          // Each loop starts on the default theme so the demo can show the switch again.
+          if (index === 0 && !userTouched && settings.theme !== DEMO.from) { settings.theme = DEMO.from; apply(); }
           for (let i = 1; i <= text.length; i++) {
             await whenVisible();
             textEl.textContent = text.slice(0, i);
             await wait(TIMING.type + Math.random() * 30 - 12);
           }
+          if (index === 0 && !userTouched) await demo();
           await wait(TIMING.hold);
           for (let i = text.length - 1; i >= 0; i--) {
             await whenVisible();
@@ -304,6 +322,46 @@
           index = (index + 1) % prompts.length;
         }
       };
+      /* ----- cursor demo: open the theme menu and pick another theme ----- */
+      const wrapEl = $('.wrap'), cur = $('.cursor');
+      const pointAt = el => {
+        const w = wrapEl.getBoundingClientRect(), r = el.getBoundingClientRect();
+        cur.style.transform = `translate(${r.left - w.left + r.width * 0.42}px, ${r.top - w.top + r.height * 0.5}px)`;
+      };
+      const press = el => { el.classList.add('press'); setTimeout(() => el.classList.remove('press'), 170); };
+      const demo = async () => {
+        await whenVisible();
+        await wait(600);
+        if (userTouched) return;
+        const w = wrapEl.getBoundingClientRect();
+        cur.style.transition = 'none';
+        cur.style.transform = `translate(${w.width * 0.5}px, ${w.height * 0.62}px)`;
+        void cur.offsetWidth;
+        cur.style.transition = '';
+        cur.classList.add('show');
+        await wait(150);
+        pointAt(dd.theme.btn);
+        await wait(1050);
+        if (userTouched) { cur.classList.remove('show'); return; }
+        press(dd.theme.btn);
+        openDD('theme', false);
+        await wait(750);
+        const target = dd.theme.menu.querySelector(`[data-id="${DEMO.to}"]`);
+        if (!target || userTouched) { openDD(null, false); cur.classList.remove('show'); return; }
+        pointAt(target);
+        await wait(1000);
+        press(target);
+        await wait(180);
+        settings.theme = DEMO.to;
+        apply();
+        openDD(null, false);
+        await wait(500);
+        const r = wrapEl.getBoundingClientRect(), b = dd.theme.btn.getBoundingClientRect();
+        cur.style.transform = `translate(${b.right - r.left + 60}px, ${b.bottom - r.top + 40}px)`;
+        cur.classList.remove('show');
+        await wait(700);
+      };
+
       new IntersectionObserver(([e]) => {
         visible = e.isIntersecting;
         if (visible && this._resume) { const r = this._resume; this._resume = null; r(); }
