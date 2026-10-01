@@ -67,6 +67,8 @@
   --cs-glow-opacity: .45;
   --cs-cur-fill: #171923;
   --cs-xbg: #FFFFFF;
+  --cs-att-bg: #F8F9FB;
+  --cs-att-line: #E4E6EC;
   --cs-xfg: #171923;
   --cs-cur-edge: #FFFFFF;
   color-scheme: light;
@@ -86,6 +88,8 @@
   --cs-glow-opacity: .7;
   --cs-cur-fill: #FFFFFF;
   --cs-xbg: #F1F2F6;
+  --cs-att-bg: #27293F;
+  --cs-att-line: #3A3C57;
   --cs-xfg: #171923;
   --cs-cur-edge: #1F2034;
   color-scheme: dark;
@@ -122,20 +126,21 @@
 .attach { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .35s cubic-bezier(.3, .7, .3, 1), opacity .3s ease; }
 .attach.open { grid-template-rows: 1fr; }
 .attach > div { min-height: 0; overflow: hidden; }
-.att { position: relative; display: inline-block; max-width: calc(100% - 12px); margin: 10px 0 14px; animation: attIn .35s cubic-bezier(.3, .7, .3, 1.2) both; }
+.att { position: relative; display: inline-block; max-width: calc(100% - 12px); margin: 7px 0 10px; animation: attIn .35s cubic-bezier(.3, .7, .3, 1.2) both; }
 .att.out { animation: attOut .25s ease both; }
-.att .pill { position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 22px 12px 16px; border-radius: 18px; background: var(--cs-chip); color: var(--cs-ink); font-size: 16px; overflow: hidden; }
-.fi { flex: none; color: var(--cs-ink); }
+.att .pill { position: relative; display: flex; align-items: center; gap: 9px; padding: 7px 16px 7px 10px; border-radius: 14px; background: var(--cs-att-bg); border: 1px solid var(--cs-att-line); color: var(--cs-text); font-size: 15px; font-weight: 500; overflow: hidden; }
+.fi { flex: none; color: var(--cs-pdf, #E5484D); }
 .att .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .att .bar { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; background: var(--cs-accent); transition: width .7s ease, opacity .3s ease .7s; }
 .att.up .bar { width: 100%; opacity: 0; }
-.att .x { position: absolute; top: -9px; right: -9px; width: 26px; height: 26px; border: 1px solid var(--cs-line2); border-radius: 50%; display: grid; place-items: center; background: var(--cs-xbg); color: var(--cs-xfg); cursor: pointer; opacity: 0; transform: scale(.85); box-shadow: 0 4px 10px -4px rgba(20, 22, 40, .35); transition: opacity .15s ease, transform .15s ease; }
+.att .x { position: absolute; top: -7px; right: -7px; width: 24px; height: 24px; border: 1px solid var(--cs-att-line); border-radius: 50%; display: grid; place-items: center; background: var(--cs-xbg); color: var(--cs-xfg); cursor: pointer; opacity: 0; transform: scale(.85); box-shadow: 0 4px 10px -4px rgba(20, 22, 40, .35); transition: opacity .15s ease, transform .15s ease; }
 .att:hover .x, .att:focus-within .x { opacity: 1; transform: none; }
 .att .x:focus-visible { outline: 2px solid var(--cs-accent); outline-offset: 1px; }
 @media (hover: none) { .att .x { opacity: 1; transform: none; } }
-.box { transition: border-color .2s ease, box-shadow .2s ease; }
+.box { transition: border-color .2s ease, box-shadow .2s ease, padding-top .35s cubic-bezier(.3, .7, .3, 1); }
+.box.has-att { padding-top: 14px; }
 .box.drop { border-color: var(--cs-accent); box-shadow: var(--cs-box-shadow), 0 0 0 4px color-mix(in srgb, var(--cs-accent) 18%, transparent); }
-.ghost { position: absolute; left: 0; top: 0; z-index: 11; pointer-events: none; display: inline-flex; align-items: center; gap: 10px; padding: 10px 18px 10px 14px; border-radius: 16px; background: var(--cs-chip); font-size: 15px; color: var(--cs-ink); white-space: nowrap; box-shadow: 0 16px 34px -12px rgba(20, 22, 40, .4); opacity: 0; transition: transform .9s cubic-bezier(.45, .1, .2, 1), opacity .25s ease; }
+.ghost { position: absolute; left: 0; top: 0; z-index: 11; pointer-events: none; display: inline-flex; align-items: center; gap: 10px; padding: 10px 18px 10px 14px; border-radius: 14px; background: var(--cs-box); border: 1px solid var(--cs-att-line); font-size: 15px; font-weight: 500; color: var(--cs-text); white-space: nowrap; box-shadow: 0 16px 34px -12px rgba(20, 22, 40, .3); opacity: 0; transition: transform .9s cubic-bezier(.45, .1, .2, 1), opacity .25s ease; }
 .ghost.show { opacity: 1; }
 .ghost.drop { transition: transform .25s ease, opacity .2s ease; opacity: 0; }
 .cursor { z-index: 12; }
@@ -214,7 +219,7 @@
     timer: `<svg width="20" height="20" viewBox="0 0 20 20" ${S}><circle cx="10" cy="11.5" r="6.5"/><path d="M8 2.5h4M10 2.5V5M10 11.5V8M15.5 5.5l1-1"/></svg>`,
     check: '<svg class="ck" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-6.5"/></svg>'
   };
-  const FILE_ICON = '<svg class="fi" width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><path d="M20.5 12V8.5L14.5 2.5H6A2.5 2.5 0 0 0 3.5 5v19A2.5 2.5 0 0 0 6 26.5h1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.5 2.5V6.5a2 2 0 0 0 2 2h4" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><text x="9" y="29" font-size="8.4" font-weight="800" fill="currentColor" font-family="inherit">PDF</text></svg>';
+  const FILE_ICON = '<svg class="fi" width="22" height="23" viewBox="0 0 23 24" fill="none" aria-hidden="true"><path d="M7.5625 2.0625H2.75C2.36328 2.0625 2.0625 2.36328 2.0625 2.75V19.25C2.0625 19.6367 2.36328 19.9375 2.75 19.9375H6.1875V22H2.75C1.24609 22 0 20.7539 0 19.25V2.75C0 1.24609 1.24609 0 2.75 0H8.50781C9.23828 0 9.92578 0.300781 10.4414 0.816406L15.6836 6.05859C16.1992 6.57422 16.5 7.30469 16.5 8.03516V14.4375H14.4375V8.9375H10.6562C8.9375 8.9375 7.5625 7.5625 7.5625 5.84375V2.0625ZM13.5781 6.875L9.625 2.92188V5.84375C9.625 6.40234 10.0977 6.875 10.6562 6.875H13.5781ZM8.9375 16.3281H10.3125C11.7305 16.3281 12.8906 17.4883 12.8906 18.9062C12.8906 20.3242 11.7305 21.4844 10.3125 21.4844H9.79688V22.6875C9.79688 23.1602 9.41016 23.5469 8.9375 23.5469C8.46484 23.5469 8.07812 23.1602 8.07812 22.6875V17.1875C8.07812 16.7148 8.46484 16.3281 8.9375 16.3281ZM10.3125 19.7656C10.7852 19.7656 11.1719 19.3789 11.1719 18.9062C11.1719 18.4336 10.7852 18.0469 10.3125 18.0469H9.79688V19.7656H10.3125ZM14.4375 16.3281H15.8125C17.0586 16.3281 18.0469 17.3164 18.0469 18.5625V21.3125C18.0469 22.5586 17.0586 23.5469 15.8125 23.5469H14.4375C13.9648 23.5469 13.5781 23.1602 13.5781 22.6875V17.1875C13.5781 16.7148 13.9648 16.3281 14.4375 16.3281ZM15.8125 21.8281C16.1133 21.8281 16.3281 21.6133 16.3281 21.3125V18.5625C16.3281 18.2617 16.1133 18.0469 15.8125 18.0469H15.2969V21.8281H15.8125ZM19.0781 17.1875C19.0781 16.7148 19.4648 16.3281 19.9375 16.3281H22C22.4727 16.3281 22.8594 16.7148 22.8594 17.1875C22.8594 17.6602 22.4727 18.0469 22 18.0469H20.7969V19.0781H22C22.4727 19.0781 22.8594 19.4648 22.8594 19.9375C22.8594 20.4102 22.4727 20.7969 22 20.7969H20.7969V22.6875C20.7969 23.1602 20.4102 23.5469 19.9375 23.5469C19.4648 23.5469 19.0781 23.1602 19.0781 22.6875V17.1875Z" fill="currentColor"/></svg>';
   const dotsHTML = cs => `<span class="dots3">${cs.map(c => `<i style="background:${c}"></i>`).join('')}</span>`;
   const h = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 
@@ -448,6 +453,7 @@
         chip.querySelector('.x').addEventListener('click', e => { e.stopPropagation(); removeAttachment(); });
         attachInner.replaceChildren(chip);
         attachEl.classList.add('open');
+        boxEl.classList.add('has-att');
         requestAnimationFrame(() => requestAnimationFrame(() => chip.classList.add('up')));
         attached = chip;
       };
@@ -457,6 +463,7 @@
         attached = null;
         chip.classList.add('out');
         attachEl.classList.remove('open');
+        boxEl.classList.remove('has-att');
         setTimeout(() => { if (!attached) attachInner.replaceChildren(); }, 380);
       };
 
