@@ -169,6 +169,7 @@
 @keyframes pop { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
 @keyframes drift { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
 @media (max-width: 640px) {
+  .dd-shape, .dd-length { display: none; }
   .box { border-radius: 26px; padding: 20px 12px 12px 20px; gap: 16px; }
   .field { font-size: 17px; }
   .chip { height: 40px; font-size: 14.5px; padding: 0 14px 0 12px; }
@@ -223,7 +224,7 @@
       /* ----- dropdowns ----- */
       const dd = {};
       const makeDD = (key, label, right) => {
-        const wrap = h('div', 'dd');
+        const wrap = h('div', 'dd dd-' + key);
         const btn = h('button', 'chip');
         btn.type = 'button';
         btn.setAttribute('aria-haspopup', 'menu');
