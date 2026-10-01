@@ -36,8 +36,8 @@
   const DEFAULTS = { theme: 'northwind', shape: 'mobile', length: 30 };
   const TIMING = { type: 38, erase: 16, hold: 2400, gap: 450 };
   const MARK = 'M22.3096 16.2673C22.3096 19.3476 24.8067 21.8447 27.887 21.8447H38.113C41.1933 21.8447 43.6904 19.3476 43.6904 16.2673V5.57747C43.6904 2.49712 46.1875 0 49.2679 0H60.4225C63.5029 0 66 2.49712 66 5.57747V16.7321C66 19.8125 63.5029 22.3096 60.4225 22.3096H49.7327C46.6524 22.3096 44.1553 24.8067 44.1553 27.887V38.113C44.1553 41.1933 46.6524 43.6904 49.7327 43.6904H60.4225C63.5029 43.6904 66 46.1875 66 49.2679V60.4225C66 63.5029 63.5029 66 60.4225 66H49.2679C46.1875 66 43.6904 63.5029 43.6904 60.4225V49.7327C43.6904 46.6524 41.1933 44.1553 38.113 44.1553H27.887C24.8067 44.1553 22.3096 46.6524 22.3096 49.7327V60.4225C22.3096 63.5029 19.8125 66 16.7321 66H5.57746C2.49712 66 0 63.5029 0 60.4225V49.2679C0 46.1875 2.49712 43.6904 5.57747 43.6904H16.2673C19.3476 43.6904 21.8447 41.1933 21.8447 38.113V27.887C21.8447 24.8067 19.3476 22.3096 16.2673 22.3096H5.57747C2.49712 22.3096 0 19.8125 0 16.7321V5.57746C0 2.49712 2.49712 0 5.57747 0H16.7321C19.8125 0 22.3096 2.49712 22.3096 5.57747V16.2673Z';
-  // Cursor demo after the first prompt: switches the theme from one to the other.
-  const DEMO = { from: 'northwind', to: 'ember' };
+  // After the first prompt types in, a cursor drags this file into the box as an attachment.
+  const DEMO_FILE = 'Portfolio review.pdf';
 
   // Registered color properties let the glow fade between themes. They must live in the document.
   if (!document.getElementById('catalyst-prompt-props')) {
@@ -66,6 +66,8 @@
   --cs-box-shadow: 0 24px 60px -28px rgba(30, 34, 60, .22);
   --cs-glow-opacity: .45;
   --cs-cur-fill: #171923;
+  --cs-xbg: #FFFFFF;
+  --cs-xfg: #171923;
   --cs-cur-edge: #FFFFFF;
   color-scheme: light;
 }
@@ -83,6 +85,8 @@
   --cs-box-shadow: 0 30px 60px -30px rgba(4, 5, 14, .8);
   --cs-glow-opacity: .7;
   --cs-cur-fill: #FFFFFF;
+  --cs-xbg: #F1F2F6;
+  --cs-xfg: #171923;
   --cs-cur-edge: #1F2034;
   color-scheme: dark;
 }
@@ -113,7 +117,30 @@
 .node { position: absolute; left: 0; top: 0; opacity: 0; will-change: transform, opacity; }
 .mark { position: absolute; left: 0; top: 0; opacity: 0; overflow: visible; will-change: transform, opacity; }
 .field, .chips, .plus { transition: opacity .3s ease; }
-.dim .field, .dim .chips, .dim .plus { opacity: .12; }
+.dim .field, .dim .chips, .dim .plus, .dim .attach { opacity: .12; }
+.top { display: flex; flex-direction: column; }
+.attach { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .35s cubic-bezier(.3, .7, .3, 1), opacity .3s ease; }
+.attach.open { grid-template-rows: 1fr; }
+.attach > div { min-height: 0; overflow: hidden; }
+.att { position: relative; display: inline-block; max-width: calc(100% - 12px); margin: 10px 0 14px; animation: attIn .35s cubic-bezier(.3, .7, .3, 1.2) both; }
+.att.out { animation: attOut .25s ease both; }
+.att .pill { position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 22px 12px 16px; border-radius: 18px; background: var(--cs-chip); color: var(--cs-ink); font-size: 16px; overflow: hidden; }
+.fi { flex: none; color: var(--cs-ink); }
+.att .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.att .bar { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; background: var(--cs-accent); transition: width .7s ease, opacity .3s ease .7s; }
+.att.up .bar { width: 100%; opacity: 0; }
+.att .x { position: absolute; top: -9px; right: -9px; width: 26px; height: 26px; border: 1px solid var(--cs-line2); border-radius: 50%; display: grid; place-items: center; background: var(--cs-xbg); color: var(--cs-xfg); cursor: pointer; opacity: 0; transform: scale(.85); box-shadow: 0 4px 10px -4px rgba(20, 22, 40, .35); transition: opacity .15s ease, transform .15s ease; }
+.att:hover .x, .att:focus-within .x { opacity: 1; transform: none; }
+.att .x:focus-visible { outline: 2px solid var(--cs-accent); outline-offset: 1px; }
+@media (hover: none) { .att .x { opacity: 1; transform: none; } }
+.box { transition: border-color .2s ease, box-shadow .2s ease; }
+.box.drop { border-color: var(--cs-accent); box-shadow: var(--cs-box-shadow), 0 0 0 4px color-mix(in srgb, var(--cs-accent) 18%, transparent); }
+.ghost { position: absolute; left: 0; top: 0; z-index: 11; pointer-events: none; display: inline-flex; align-items: center; gap: 10px; padding: 10px 18px 10px 14px; border-radius: 16px; background: var(--cs-chip); font-size: 15px; color: var(--cs-ink); white-space: nowrap; box-shadow: 0 16px 34px -12px rgba(20, 22, 40, .4); opacity: 0; transition: transform .9s cubic-bezier(.45, .1, .2, 1), opacity .25s ease; }
+.ghost.show { opacity: 1; }
+.ghost.drop { transition: transform .25s ease, opacity .2s ease; opacity: 0; }
+.cursor { z-index: 12; }
+@keyframes attIn { from { opacity: 0; transform: translateY(6px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes attOut { to { opacity: 0; transform: scale(.94); } }
 .field { font-size: 19px; line-height: 1.45; min-height: 2.9em; padding-right: 12px; color: var(--cs-text); overflow-wrap: anywhere; }
 .caret { display: inline-block; width: 2px; height: 1.15em; margin-left: 2px; vertical-align: -.2em; background: var(--cs-ink); animation: blink 1s steps(2) infinite; }
 .bottom { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -187,6 +214,7 @@
     timer: `<svg width="20" height="20" viewBox="0 0 20 20" ${S}><circle cx="10" cy="11.5" r="6.5"/><path d="M8 2.5h4M10 2.5V5M10 11.5V8M15.5 5.5l1-1"/></svg>`,
     check: '<svg class="ck" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-6.5"/></svg>'
   };
+  const FILE_ICON = '<svg class="fi" width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><path d="M20.5 12V8.5L14.5 2.5H6A2.5 2.5 0 0 0 3.5 5v19A2.5 2.5 0 0 0 6 26.5h1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.5 2.5V6.5a2 2 0 0 0 2 2h4" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><text x="9" y="29" font-size="8.4" font-weight="800" fill="currentColor" font-family="inherit">PDF</text></svg>';
   const dotsHTML = cs => `<span class="dots3">${cs.map(c => `<i style="background:${c}"></i>`).join('')}</span>`;
   const h = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 
@@ -198,9 +226,13 @@
         <div class="wrap">
           <div class="glow"></div>
           <div class="sparks" aria-hidden="true"></div>
+          <div class="ghost" aria-hidden="true">${FILE_ICON}<span></span></div>
           <svg class="cursor" viewBox="0 0 22 26" aria-hidden="true"><path d="M2 1.5v18l4.6-4.3 3.2 7.3 3.2-1.4-3.2-7.2h6.4z"/></svg>
           <div class="box">
-            <div class="field" aria-hidden="true"><span class="text"></span><span class="caret"></span></div>
+            <div class="top">
+              <div class="attach"><div></div></div>
+              <div class="field" aria-hidden="true"><span class="text"></span><span class="caret"></span></div>
+            </div>
             <div class="bottom">
               <span class="plus"><svg width="24" height="24" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M11 4v14M4 11h14"/></svg></span>
               <div class="chips"></div>
@@ -390,62 +422,78 @@
         }
         for (;;) {
           const text = prompts[index];
-          // Each loop starts on the default theme so the demo can show the switch again.
-          if (index === 0 && !userTouched && settings.theme !== DEMO.from) { settings.theme = DEMO.from; apply(); }
           for (let i = 1; i <= text.length; i++) {
             await whenVisible();
             textEl.textContent = text.slice(0, i);
             await wait(TIMING.type + Math.random() * 30 - 12);
           }
-          if (index === 0 && !userTouched) await demo();
+          if (index === 0) await demo();
           await wait(TIMING.hold);
           for (let i = text.length - 1; i >= 0; i--) {
             await whenVisible();
             textEl.textContent = text.slice(0, i);
             await wait(TIMING.erase);
           }
+          if (attached) { removeAttachment(); await wait(350); }
           await wait(TIMING.gap);
           index = (index + 1) % prompts.length;
         }
       };
-      /* ----- cursor demo: open the theme menu and pick another theme ----- */
-      const wrapEl = $('.wrap'), cur = $('.cursor');
-      const pointAt = el => {
-        const w = wrapEl.getBoundingClientRect(), r = el.getBoundingClientRect();
-        cur.style.transform = `translate(${r.left - w.left + r.width * 0.42}px, ${r.top - w.top + r.height * 0.5}px)`;
+      /* ----- attachment: added by the drag demo, removable with its x ----- */
+      const attachEl = $('.attach'), attachInner = attachEl.firstElementChild;
+      let attached = null;
+      const addAttachment = name => {
+        const chip = h('div', 'att', `<div class="pill">${FILE_ICON}<span class="nm"></span><span class="bar"></span></div><button class="x" type="button" aria-label="Remove ${name}"><svg width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6"/></svg></button>`);
+        chip.querySelector('.nm').textContent = name;
+        chip.querySelector('.x').addEventListener('click', e => { e.stopPropagation(); removeAttachment(); });
+        attachInner.replaceChildren(chip);
+        attachEl.classList.add('open');
+        requestAnimationFrame(() => requestAnimationFrame(() => chip.classList.add('up')));
+        attached = chip;
       };
-      const press = el => { el.classList.add('press'); setTimeout(() => el.classList.remove('press'), 170); };
+      const removeAttachment = () => {
+        const chip = attached;
+        if (!chip) return;
+        attached = null;
+        chip.classList.add('out');
+        attachEl.classList.remove('open');
+        setTimeout(() => { if (!attached) attachInner.replaceChildren(); }, 380);
+      };
+
+      /* ----- cursor demo: drag a PDF into the box ----- */
+      const wrapEl = $('.wrap'), cur = $('.cursor'), ghost = $('.ghost'), boxEl = $('.box');
+      ghost.querySelector('span').textContent = DEMO_FILE;
+      const place = (x, y, instant) => {
+        if (instant) { cur.style.transition = ghost.style.transition = 'none'; }
+        cur.style.transform = `translate(${x}px, ${y}px)`;
+        ghost.style.transform = `translate(${x + 12}px, ${y + 16}px) rotate(-4deg)`;
+        if (instant) { void cur.offsetWidth; cur.style.transition = ghost.style.transition = ''; }
+      };
       const demo = async () => {
         await whenVisible();
-        await wait(600);
-        if (userTouched) return;
-        const w = wrapEl.getBoundingClientRect();
-        cur.style.transition = 'none';
-        cur.style.transform = `translate(${w.width * 0.5}px, ${w.height * 0.62}px)`;
-        void cur.offsetWidth;
-        cur.style.transition = '';
-        cur.classList.add('show');
-        await wait(150);
-        pointAt(dd.theme.btn);
-        await wait(1050);
-        if (userTouched) { cur.classList.remove('show'); return; }
-        press(dd.theme.btn);
-        openDD('theme', false);
-        await wait(750);
-        const target = dd.theme.menu.querySelector(`[data-id="${DEMO.to}"]`);
-        if (!target || userTouched) { openDD(null, false); cur.classList.remove('show'); return; }
-        pointAt(target);
-        await wait(1000);
-        press(target);
-        await wait(180);
-        settings.theme = DEMO.to;
-        apply();
-        openDD(null, false);
         await wait(500);
-        const r = wrapEl.getBoundingClientRect(), b = dd.theme.btn.getBoundingClientRect();
-        cur.style.transform = `translate(${b.right - r.left + 60}px, ${b.bottom - r.top + 40}px)`;
+        const W = wrapEl.getBoundingClientRect(), B = boxEl.getBoundingClientRect();
+        const bx = B.left - W.left, by = B.top - W.top;
+        place(bx + B.width * 0.78, by - 90, true);
+        ghost.classList.remove('drop');
+        cur.classList.add('show');
+        ghost.classList.add('show');
+        await wait(120);
+        place(bx + B.width * 0.42, by + B.height * 0.32);
+        await wait(520);
+        boxEl.classList.add('drop');
+        await wait(520);
+        ghost.classList.add('drop');
+        ghost.style.transform = `translate(${bx + 28}px, ${by + 34}px) scale(.95)`;
+        boxEl.classList.remove('drop');
+        await wait(140);
+        addAttachment(DEMO_FILE);
+        await wait(450);
+        const W2 = wrapEl.getBoundingClientRect(), B2 = boxEl.getBoundingClientRect();
+        cur.style.transform = `translate(${B2.left - W2.left + B2.width * 0.55}px, ${B2.top - W2.top - 50}px)`;
         cur.classList.remove('show');
-        await wait(700);
+        ghost.classList.remove('show');
+        await wait(600);
       };
 
       new IntersectionObserver(([e]) => {
