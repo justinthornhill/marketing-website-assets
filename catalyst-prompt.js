@@ -1,9 +1,9 @@
 /*! Catalyst hero prompt · <catalyst-prompt> web component
  *  Usage: <catalyst-prompt></catalyst-prompt>
  *  Optional attributes:
- *    href="https://..."   the send button links here
  *    menus="up"           open the dropdown menus above the box instead of below
  *    mode="dark"           dark version (light is the default)
+ *    celebrate="spark"     on send, the Catalyst spark assembles (default is a glow surge)
  *    prompts='["...","..."]'  replace the rotating prompts (JSON array)
  *  Fires "catalyst-prompt-submit" with { prompt, theme, shape, length } when the send button is clicked.
  *  Styles live in a shadow root. The font is inherited from the page. Colors use --cs-* variables.
@@ -35,6 +35,7 @@
   const LENGTHS = [15, 30, 45, 60];
   const DEFAULTS = { theme: 'northwind', shape: 'mobile', length: 30 };
   const TIMING = { type: 38, erase: 16, hold: 2400, gap: 450 };
+  const MARK = 'M22.3096 16.2673C22.3096 19.3476 24.8067 21.8447 27.887 21.8447H38.113C41.1933 21.8447 43.6904 19.3476 43.6904 16.2673V5.57747C43.6904 2.49712 46.1875 0 49.2679 0H60.4225C63.5029 0 66 2.49712 66 5.57747V16.7321C66 19.8125 63.5029 22.3096 60.4225 22.3096H49.7327C46.6524 22.3096 44.1553 24.8067 44.1553 27.887V38.113C44.1553 41.1933 46.6524 43.6904 49.7327 43.6904H60.4225C63.5029 43.6904 66 46.1875 66 49.2679V60.4225C66 63.5029 63.5029 66 60.4225 66H49.2679C46.1875 66 43.6904 63.5029 43.6904 60.4225V49.7327C43.6904 46.6524 41.1933 44.1553 38.113 44.1553H27.887C24.8067 44.1553 22.3096 46.6524 22.3096 49.7327V60.4225C22.3096 63.5029 19.8125 66 16.7321 66H5.57746C2.49712 66 0 63.5029 0 60.4225V49.2679C0 46.1875 2.49712 43.6904 5.57747 43.6904H16.2673C19.3476 43.6904 21.8447 41.1933 21.8447 38.113V27.887C21.8447 24.8067 19.3476 22.3096 16.2673 22.3096H5.57747C2.49712 22.3096 0 19.8125 0 16.7321V5.57746C0 2.49712 2.49712 0 5.57747 0H16.7321C19.8125 0 22.3096 2.49712 22.3096 5.57747V16.2673Z';
   // Cursor demo after the first prompt: switches the theme from one to the other.
   const DEMO = { from: 'northwind', to: 'ember' };
 
@@ -91,13 +92,16 @@
   letter-spacing: normal; word-spacing: normal; text-transform: none; text-align: left; text-indent: 0; text-shadow: none;
   white-space: normal; color: var(--cs-ink); visibility: visible; cursor: auto; direction: ltr;
 }
+.wrap { transition: --cs-h1 .9s ease, --cs-h2 .9s ease, --cs-h3 .9s ease; }
+.wrap.surge { transition-duration: .17s, .17s, .17s; }
+.flare .glow, .surge .glow { opacity: .95; filter: blur(calc(var(--cs-glow-blur, 60px) * .8)); }
 .glow {
   position: absolute; inset: 0; z-index: -1; pointer-events: none; border-radius: 32px;
   background: linear-gradient(90deg, var(--cs-h1), var(--cs-h2), var(--cs-h3), var(--cs-h1));
   background-size: 300% 100%;
   filter: blur(var(--cs-glow-blur, 60px));
   opacity: var(--cs-glow-opacity);
-  transition: --cs-h1 .9s ease, --cs-h2 .9s ease, --cs-h3 .9s ease;
+  transition: opacity .5s ease, filter .5s ease;
   animation: drift 18s ease-in-out infinite alternate;
 }
 .box {
@@ -105,6 +109,11 @@
   padding: 26px 18px 18px 30px; display: flex; flex-direction: column; gap: 22px;
   box-shadow: var(--cs-box-shadow);
 }
+.sparks { position: absolute; inset: 0; z-index: 9; pointer-events: none; }
+.node { position: absolute; left: 0; top: 0; opacity: 0; will-change: transform, opacity; }
+.mark { position: absolute; left: 0; top: 0; opacity: 0; overflow: visible; will-change: transform, opacity; }
+.field, .chips, .plus { transition: opacity .3s ease; }
+.dim .field, .dim .chips, .dim .plus { opacity: .12; }
 .field { font-size: 19px; line-height: 1.45; min-height: 2.9em; padding-right: 12px; color: var(--cs-text); overflow-wrap: anywhere; }
 .caret { display: inline-block; width: 2px; height: 1.15em; margin-left: 2px; vertical-align: -.2em; background: var(--cs-ink); animation: blink 1s steps(2) infinite; }
 .bottom { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -117,6 +126,14 @@
 .chip svg { flex: none; }
 .dots3 { display: inline-flex; padding-left: 8px; }
 .dots3 i { display: block; width: 20px; height: 20px; border-radius: 50%; margin-left: -8px; box-shadow: 0 0 0 2px var(--cs-box); }
+.box::before {
+  content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none; opacity: 0;
+  background: linear-gradient(90deg, transparent 0%, var(--cs-h1) 30%, var(--cs-h2) 50%, var(--cs-h3) 70%, transparent 100%) 0 0 / 250% 100%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.surge .box::before { animation: sweep 1.1s ease-out; }
+.surge .send, .flare .send { animation: ping .8s ease-out; }
 .send { flex: none; margin-left: auto; width: 52px; height: 52px; border-radius: 50%; border: 0; background: var(--cs-ink); color: var(--cs-box); display: grid; place-items: center; cursor: pointer; text-decoration: none; transition: transform .15s ease; }
 .send:active { transform: scale(.9); }
 .chip:focus-visible, .item:focus-visible, .send:focus-visible, .custom input:focus-visible { outline: 2px solid var(--cs-accent); outline-offset: 2px; }
@@ -146,6 +163,8 @@
 .chip.press { transform: scale(.96); }
 .item.press { background: var(--cs-chip); }
 .chip { transition: border-color .15s ease, color .15s ease, background .15s ease, transform .15s ease; }
+@keyframes sweep { 0% { opacity: 0; background-position: 100% 0; } 30% { opacity: .45; } 100% { opacity: 0; background-position: -150% 0; } }
+@keyframes ping { from { box-shadow: 0 0 0 0 var(--cs-h2); } to { box-shadow: 0 0 0 20px transparent; } }
 @keyframes blink { to { visibility: hidden; } }
 @keyframes pop { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
 @keyframes drift { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
@@ -174,17 +193,17 @@
     connectedCallback() {
       if (this.shadowRoot) return;
       const root = this.attachShadow({ mode: 'open' });
-      const href = this.getAttribute('href');
       root.innerHTML = `<style>${CSS}</style>
         <div class="wrap">
           <div class="glow"></div>
+          <div class="sparks" aria-hidden="true"></div>
           <svg class="cursor" viewBox="0 0 22 26" aria-hidden="true"><path d="M2 1.5v18l4.6-4.3 3.2 7.3 3.2-1.4-3.2-7.2h6.4z"/></svg>
           <div class="box">
             <div class="field" aria-hidden="true"><span class="text"></span><span class="caret"></span></div>
             <div class="bottom">
               <span class="plus"><svg width="24" height="24" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M11 4v14M4 11h14"/></svg></span>
               <div class="chips"></div>
-              ${href ? `<a class="send" href="${href.replace(/"/g, '&quot;')}" aria-label="Start creating">` : '<button class="send" type="button" aria-label="Start creating">'}<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19.5V5M5.5 11.5L12 5l6.5 6.5"/></svg>${href ? '</a>' : '</button>'}
+              <button class="send" type="button" aria-label="Send"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19.5V5M5.5 11.5L12 5l6.5 6.5"/></svg></button>
             </div>
           </div>
         </div>`;
@@ -266,12 +285,13 @@
         inp.addEventListener('change', commit);
         lm.append(h('div', 'sep'), row);
       };
+      const setGlow = t => t.glow.forEach((c, i) => $('.wrap').style.setProperty(`--cs-h${i + 1}`, c));
       const apply = () => {
         const t = themeOf(), s = shapeOf();
         dd.theme.btn.innerHTML = `${dotsHTML(t.dots)}<span>${t.name}</span>`;
         dd.shape.btn.innerHTML = `${ICON[s.id]}<span>${s.name}</span>`;
         dd.length.btn.innerHTML = `${ICON.timer}<span>${settings.length ? settings.length + 's' : 'None'}</span>`;
-        t.glow.forEach((c, i) => glow.style.setProperty(`--cs-h${i + 1}`, c));
+        setGlow(t);
         renderMenus();
       };
       makeDD('theme', 'Brand theme');
@@ -284,11 +304,76 @@
         for (const k in dd) if (!dd[k].menu.hidden) { openDD(null); dd[k].btn.focus(); }
       });
 
+      /* ----- send: glow surge (no navigation) ----- */
+      let surging = false;
+      const pause = ms => new Promise(res => setTimeout(res, ms));
+      const surge = async () => {
+        const w = $('.wrap');
+        surging = true;
+        w.classList.add('surge');
+        const order = THEMES.filter(t => t.id !== settings.theme).concat(themeOf());
+        for (const t of order) { setGlow(t); await pause(170); }
+        setTimeout(() => { w.classList.remove('surge'); surging = false; }, 700);
+      };
+      const spark = async () => {
+        const w = $('.wrap'), layer = $('.sparks'), box = $('.box'), send = $('.send');
+        surging = true;
+        const W = w.getBoundingClientRect(), B = box.getBoundingClientRect(), S = send.getBoundingClientRect();
+        const M = Math.min(84, B.height * 0.62), u = M / 66;
+        const cx = B.left - W.left + B.width / 2, cy = B.top - W.top + B.height / 2;
+        const mx = cx - M / 2, my = cy - M / 2;
+        const sx = S.left - W.left + S.width / 2, sy = S.top - W.top + S.height / 2;
+        // the five nodes of the mark: four corners and the center, colored along the logo gradient
+        const nodes = [
+          { x: 0, y: 0, s: 22.3, c: '#6A5CFF' }, { x: 43.7, y: 0, s: 22.3, c: '#5D93F4' },
+          { x: 0, y: 43.7, s: 22.3, c: '#5D93F4' }, { x: 43.7, y: 43.7, s: 22.3, c: '#4FF0E8' },
+          { x: 21.8, y: 21.8, s: 22.4, c: '#58B6EE' }
+        ];
+        w.classList.add('flare', 'dim');
+        const els = nodes.map((n, i) => {
+          const size = n.s * u, el = h('div', 'node');
+          el.style.cssText = `width:${size}px;height:${size}px;border-radius:${size * 0.25}px;background:${n.c};box-shadow:0 0 18px ${n.c}`;
+          layer.append(el);
+          const ang = (200 + i * 34 + Math.random() * 18) * Math.PI / 180, dist = 80 + Math.random() * 70;
+          const x0 = sx - size / 2, y0 = sy - size / 2;
+          const x1 = x0 + Math.cos(ang) * dist, y1 = y0 + Math.sin(ang) * dist;
+          const x2 = mx + n.x * u, y2 = my + n.y * u;
+          const rot = (Math.random() * 160 - 80).toFixed(0);
+          return el.animate([
+            { transform: `translate(${x0}px,${y0}px) rotate(0deg) scale(.2)`, opacity: 0, easing: 'cubic-bezier(.2,.8,.3,1)' },
+            { transform: `translate(${x1}px,${y1}px) rotate(${rot}deg) scale(.75)`, opacity: 1, offset: .4, easing: 'cubic-bezier(.5,0,.2,1.3)' },
+            { transform: `translate(${x2}px,${y2}px) rotate(0deg) scale(1)`, opacity: 1 }
+          ], { duration: 1000, delay: i * 45, fill: 'forwards' });
+        });
+        await Promise.all(els.map(a => a.finished));
+        // swap the nodes for the real mark, pulse it, then let it go
+        const markEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        markEl.setAttribute('class', 'mark');
+        markEl.setAttribute('viewBox', '0 0 66 66');
+        markEl.setAttribute('width', M);
+        markEl.setAttribute('height', M);
+        markEl.innerHTML = `<defs><radialGradient id="spark-g" cx="0" cy="0" r="1" gradientTransform="matrix(-52.9309 -50.4119 28.1506 -94.7881 66 66)" gradientUnits="userSpaceOnUse"><stop stop-color="#4FF0E8"/><stop offset="1" stop-color="#6A5CFF"/></radialGradient></defs><path d="${MARK}" fill="url(#spark-g)"/>`;
+        markEl.style.transform = `translate(${mx}px,${my}px)`;
+        markEl.style.filter = 'drop-shadow(0 0 16px rgba(106, 92, 255, .55))';
+        layer.append(markEl);
+        markEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 140, fill: 'forwards' });
+        els.forEach(a => a.effect.target.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' }));
+        const T = s => `translate(${mx + M / 2}px,${my + M / 2}px) scale(${s}) translate(${-M / 2}px,${-M / 2}px)`;
+        await markEl.animate([{ transform: T(1) }, { transform: T(1.1), offset: .35 }, { transform: T(1) }], { duration: 520, easing: 'ease-out', fill: 'forwards' }).finished;
+        await pause(420);
+        w.classList.remove('dim');
+        await markEl.animate([{ transform: T(1), opacity: 1 }, { transform: T(1.18), opacity: 0 }], { duration: 420, easing: 'ease-in', fill: 'forwards' }).finished;
+        layer.innerHTML = '';
+        w.classList.remove('flare');
+        surging = false;
+      };
       $('.send').addEventListener('click', () => {
         this.dispatchEvent(new CustomEvent('catalyst-prompt-submit', {
           bubbles: true, composed: true,
           detail: { prompt: prompts[index], theme: settings.theme, shape: settings.shape, length: settings.length }
         }));
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches || surging) return;
+        if (this.getAttribute('celebrate') === 'spark') spark(); else surge();
       });
 
       /* ----- typewriter ----- */
